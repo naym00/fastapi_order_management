@@ -1,3 +1,9 @@
-https://www.youtube.com/watch?v=7t2alSnE2-I&t=4132s
-pydentic-tutorial: https://www.youtube.com/watch?v=XIdQ6gO3Anc
-6:20
+https://www.youtube.com/watch?v=7t2alSnE2-I&t=4132s(01:37:17)
+
+
+pydentic-serialization-documentation:
+https://docs.pydantic.dev/latest/concepts/serialization/#dictmodel-and-iteration
+
+pydentic-tutorial-youtube:
+https://www.youtube.com/watch?v=XIdQ6gO3Anc(Done)
+https://www.youtube.com/watch?v=7aBRk_JP-qY(5:02)
