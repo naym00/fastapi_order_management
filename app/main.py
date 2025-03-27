@@ -1,6 +1,7 @@
 from typing import Union
 from fastapi import FastAPI
 from app import schemas as SCHEMA
+import uvicorn
 
 app = FastAPI()
 
@@ -22,3 +23,6 @@ async def read_item(item_id: int, q: Union[str, None] = None):
 @app.put("/items/{item_id}")
 async def update_item(item_id: int, item: SCHEMA.Item):
     return {"item_name": item.name, "item_id": item_id}
+
+if __name__ == '__main__':
+    uvicorn.run(app, host='127.0.0.1', port=8000)
