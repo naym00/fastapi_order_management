@@ -1,12 +1,15 @@
 from typing import Union
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Response, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app import schemas as SCHEMA
 from app.database import engine, SessionLocal
 from app import models
+from help.response.generic import Generic as RHELP
 import uvicorn
 
 app = FastAPI()
+resp = RHELP()
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -15,14 +18,69 @@ def get_db():
     try: yield db
     finally: db.close()
 
-
-@app.post("/item")
-async def add_item(item: SCHEMA.Item, db: Session = Depends(get_db)):
+@app.post('/item', status_code=status.HTTP_201_CREATED)
+async def add_item(item: SCHEMA.ItemCreate, db: Session = Depends(get_db)):
     new_item = models.Item(**item.model_dump())
     db.add(new_item)
     db.commit()
     db.refresh(new_item)
     return new_item
+
+@app.get('/item', status_code=status.HTTP_200_OK)
+async def all_item(db: Session = Depends(get_db)):
+    items = db.query(models.Item).all()
+    return items
+
+
+@app.get('/item/{id}', status_code=status.HTTP_200_OK)
+async def one_item(id: int, response: Response, db: Session = Depends(get_db)):
+    method_response = {}
+    db_item = db.query(models.Item).filter(models.Item.id == id).first()
+    resp.g_u_d_single(db_item, response, method_response)
+    return method_response
+
+@app.put('/item/{id}', status_code=status.HTTP_202_ACCEPTED)
+def update_item(id: int, response: Response, item: SCHEMA.ItemUpdate, db: Session = Depends(get_db)):
+    method_response = {}
+    db_item = db.query(models.Item).filter(models.Item.id == id).first()
+    if resp.g_u_d_single(db_item, response, method_response):
+        for key, value in item.model_dump().items():
+            setattr(db_item, key, value)
+        db.commit()
+        db.refresh(db_item)
+    return method_response
+
+@app.patch('/item/{id}', status_code=status.HTTP_202_ACCEPTED)
+def update_item(id: int, response: Response, item: SCHEMA.ItemUpdate, db: Session = Depends(get_db)):
+    method_response = {}
+    db_item = db.query(models.Item).filter(models.Item.id == id).first()
+    if resp.g_u_d_single(db_item, response, method_response):
+        update_data = item.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_item, field, value)
+        db.commit()
+        db.refresh(db_item)
+    return method_response
+
+@app.delete('/items/{id}')
+def delete_item(id: int, response: Response, db: Session = Depends(get_db)):
+    method_response = {}
+    db_item = db.query(models.Item).filter(models.Item.id == id).first()
+    if resp.g_u_d_single(db_item, response, method_response):
+        db.delete(db_item)
+        db.commit()
+        method_response.update({'message': 'Item deleted'})
+    return method_response
+
+# @app.get('/item/{id}', status_code=status.HTTP_200_OK)
+# async def all_item(id: int, db: Session = Depends(get_db)):
+#     item = db.query(models.Item).filter(models.Item.id == id).first()
+#     if not item:
+#         return JSONResponse(
+#             status_code=status.HTTP_404_NOT_FOUND,
+#             content={"error": "Item not found"}
+#         )
+#     return item
 
 
 

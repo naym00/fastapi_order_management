@@ -6,7 +6,7 @@ from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime
 class Item(Base):
     __tablename__ = "items"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(100), nullable=False)
     code = Column(String(10), nullable=False, unique=True)
     price = Column(Float, default=0.0)
