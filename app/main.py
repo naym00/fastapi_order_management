@@ -1,11 +1,13 @@
 from typing import Union
-from fastapi import FastAPI, Depends, Response, status
+from fastapi import FastAPI, Depends, Response, Query, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app import schemas as SCHEMA
 from app.database import engine, SessionLocal
 from app import models
 from help.response.generic import Generic as RHELP
+from sqlalchemy import or_, func
+from typing import Optional
 import uvicorn
 
 app = FastAPI()
@@ -26,12 +28,27 @@ async def add_item(item: SCHEMA.ItemCreate, db: Session = Depends(get_db)):
     db.refresh(new_item)
     return new_item
 
-@app.get('/item', status_code=status.HTTP_200_OK)
-async def all_item(db: Session = Depends(get_db)):
-    items = db.query(models.Item).all()
-    return items
+# Search
+# Searching by name
+@app.get('/item')
+def search_items(
+    response: Response,
+    name: Optional[str] = Query(None, min_length=1, description='Partial name to search (case-insensitive)'),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db)
+):
+    method_response = {}
+    query = db.query(models.Item)
+    if name:
+        query = query.filter(func.lower(models.Item.name).contains(func.lower(name)))
+    db_items = query.offset(skip).limit(limit).all()
 
+    resp.g_u_d_single(db_items, response, method_response)
+    return method_response
 
+# Search
+# Searching by id
 @app.get('/item/{id}', status_code=status.HTTP_200_OK)
 async def one_item(id: int, response: Response, db: Session = Depends(get_db)):
     method_response = {}
