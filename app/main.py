@@ -22,6 +22,7 @@ def get_db():
 
 @app.post('/item', status_code=status.HTTP_201_CREATED)
 async def add_item(item: SCHEMA.ItemCreate, db: Session = Depends(get_db)):
+    
     new_item = models.Item(**item.model_dump())
     db.add(new_item)
     db.commit()
@@ -31,7 +32,7 @@ async def add_item(item: SCHEMA.ItemCreate, db: Session = Depends(get_db)):
 # Search
 # Searching by name
 @app.get('/item')
-def search_items(
+async def search_items(
     response: Response,
     name: Optional[str] = Query(None, min_length=1, description='Partial name to search (case-insensitive)'),
     skip: int = Query(0, ge=0),
@@ -57,7 +58,7 @@ async def one_item(id: int, response: Response, db: Session = Depends(get_db)):
     return method_response
 
 @app.put('/item/{id}', status_code=status.HTTP_202_ACCEPTED)
-def update_item(id: int, response: Response, item: SCHEMA.ItemUpdate, db: Session = Depends(get_db)):
+async def update_item(id: int, response: Response, item: SCHEMA.Item, db: Session = Depends(get_db)):
     method_response = {}
     db_item = db.query(models.Item).filter(models.Item.id == id).first()
     if resp.g_u_d_single(db_item, response, method_response):
@@ -68,7 +69,7 @@ def update_item(id: int, response: Response, item: SCHEMA.ItemUpdate, db: Sessio
     return method_response
 
 @app.patch('/item/{id}', status_code=status.HTTP_202_ACCEPTED)
-def update_item(id: int, response: Response, item: SCHEMA.ItemUpdate, db: Session = Depends(get_db)):
+async def update_item(id: int, response: Response, item: SCHEMA.Item, db: Session = Depends(get_db)):
     method_response = {}
     db_item = db.query(models.Item).filter(models.Item.id == id).first()
     if resp.g_u_d_single(db_item, response, method_response):
@@ -80,7 +81,7 @@ def update_item(id: int, response: Response, item: SCHEMA.ItemUpdate, db: Sessio
     return method_response
 
 @app.delete('/items/{id}')
-def delete_item(id: int, response: Response, db: Session = Depends(get_db)):
+async def delete_item(id: int, response: Response, db: Session = Depends(get_db)):
     method_response = {}
     db_item = db.query(models.Item).filter(models.Item.id == id).first()
     if resp.g_u_d_single(db_item, response, method_response):
@@ -101,31 +102,48 @@ def delete_item(id: int, response: Response, db: Session = Depends(get_db)):
 
 
 
-# @app.get("/")
-# async def read_root():
-#     return {"Hello": "World"}
 
 
-# # @app.get("/items/{item_id}")
-# # def read_item(item_id: int, q: Union[str, None] = None):
-# #     return {"item_id": item_id, "q": q}
-
-# @app.get("/items/{item_id}")
-# async def read_item(item_id: int, q: Union[str, None] = None):
-#     return {"item_id": item_id, "q": q}
 
 
-# @app.put("/item/{item_id}")
-# async def update_item(item_id: int, item: SCHEMA.Item):
-#     dict_obj = item.model_dump()
-#     print('type: ', type(dict_obj), 'obj ', dict_obj)
-#     return item
 
-# @app.put("/bucket/{bucket_id}")
-# async def update_item(bucket_id: int, bucket: SCHEMA.Bucket):
-#     dict_obj = bucket.model_dump()
-#     print('type: ', type(dict_obj), 'obj ', dict_obj)
-#     return bucket
+
+
+
+
+
+@app.post('/parents/', status_code=status.HTTP_201_CREATED)
+async def create_parent(parent: SCHEMA.ParentCreate, db: Session = Depends(get_db)):
+    db_parent = models.Parent(**parent.model_dump())
+    db.add(db_parent)
+    db.commit()
+    db.refresh(db_parent)
+    return db_parent
+
+@app.post('/children/', status_code=status.HTTP_201_CREATED)
+def create_child(child: SCHEMA.ChildCreate, response: Response, db: Session = Depends(get_db)):
+    method_response = {}
+    parent = db.query(models.Parent).filter(models.Parent.id == child.parent_id).first()
+    if parent:
+        db_child = models.Child(**child.model_dump())
+        db.add(db_child)
+        db.commit()
+        db.refresh(db_child)
+        method_response.update({'data': db_child})
+    else:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        method_response.update({'error': {'code': 'not_found', 'message': 'parent_id was not found'}})
+    return method_response
+
+@app.get('/parents/{parent_id}', response_model=SCHEMA.Parent, status_code=status.HTTP_200_OK)
+def read_parent(parent_id: int, response: Response, db: Session = Depends(get_db)):
+    db_parent = db.query(models.Parent).filter(models.Parent.id == parent_id).first()
+    return db_parent
+
+# @app.get("/parents/", response_model=List[SCHEMA.Parent])
+# def read_parents(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+#     parents = db.query(models.Parent).offset(skip).limit(limit).all()
+#     return parents
 
 # if __name__ == '__main__':
 #     uvicorn.run(app, host='127.0.0.1', port=8000)
